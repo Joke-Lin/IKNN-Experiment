@@ -14,7 +14,7 @@ def writeDataSetToFile():
         dataSetStr = f.read()
         for eachLine in dataSetStr.split():
             tempPoint = eachLine.split(',')
-            point = [float(tempPoint[1]), float(tempPoint[0])]
+            point = [float(tempPoint[0]), float(tempPoint[1])]
             dataSet.append(point)
         dataSet = np.array(dataSet)
         np.save(newDataSetPath, dataSet)

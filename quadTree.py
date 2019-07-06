@@ -4,7 +4,9 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mp
 
 
+# 一些辅助工具函数
 def minRect(dataSet: np.ndarray) -> list:
+    ''' 求解外包最小矩形 '''
     point1 = dataSet[0].copy()  # 左上角
     point2 = dataSet[0].copy()  # 右下角
     for point in dataSet:
@@ -14,6 +16,38 @@ def minRect(dataSet: np.ndarray) -> list:
         point2[1] = point[1] if point[1] < point2[1] else point2[1]
 
     return [point1[0], point1[1], point2[0] - point1[0], point1[1] - point2[1]]
+
+
+def minDist(point: list, rect: list) -> int:
+    ''' 求解点到矩形的距离 '''
+    Px, Py = point[0], point[1]
+    x, y, w, h = rect
+
+    # 当点在矩形内则返回距离0
+    if Px >= x and Px <= x+w and Py <= y and Py >= y-h:
+        return 0
+    # 在x轴之间
+    elif Px >= x and Px <= x+w:
+        return min(abs(Py - y), abs(Py - y + h))
+    # 在y轴之间
+    elif Py <= y and Py >= y-h:
+        return min(abs(Px - x), abs(Px - x - w))
+
+    x1, x2, y1, y2 = x, x + w, y, y - h
+    points = [[x1, y1], [x2, y1], [x2, y2], [x1, y2]]
+    res = 0xffffffff
+    for p in points:
+        res = min(res, ((p[0]-Px)**2 + (p[1]-Py)**2)**0.5)
+
+    return res
+
+
+def isInRect(point: list, rect: list) -> bool:
+    '''判断一个点是否在一个矩形内'''
+    if minDist(point, rect) == 0:
+        return True
+    else:
+        return False
 
 
 def drawRect(rect: list):
@@ -87,24 +121,16 @@ class QuadTree:
         subPoints = [[], [], [], []]
         for point in dataSet:
             index = 0
-            if self.isInRect(point, subSpace[0]):
+            if isInRect(point, subSpace[0]):
                 index = 0
-            elif self.isInRect(point, subSpace[1]):
+            elif isInRect(point, subSpace[1]):
                 index = 1
-            elif self.isInRect(point, subSpace[2]):
+            elif isInRect(point, subSpace[2]):
                 index = 2
             else:
                 index = 3
             subPoints[index].append(point)
         return subSpace, subPoints
-
-    def isInRect(self, point: list, rect: list) -> bool:
-        '''判断一个点是否在一个矩形内'''
-        Px, Py = point[0], point[1]
-        x, y, w, h = rect
-        if Px >= x and Px <= x+w and Py <= y and Py >= y-h:
-            return True
-        return False
 
     def __init__(self, rect: list, dataSet: np.ndarray):
         self.root = self.creatTree(rect, dataSet)
@@ -116,8 +142,9 @@ def visualization():
     plt.scatter(x, y, s=1)
     rect = minRect(dataSet)
     print(rect)
-    quadTree = QuadTree(minRect(dataSet), dataSet)
-    plt.show()
+    # quadTree = QuadTree(minRect(dataSet), dataSet)
+    # plt.show()
+    print(minDist([1, 0], [1, 4, 2, 1]))
 
 
 if __name__ == "__main__":
