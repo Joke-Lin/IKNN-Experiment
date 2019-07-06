@@ -5,5 +5,5 @@ import matplotlib.patches as mp
 import quadTree
 import preprocess
 
-def knn(point: list, dataSet: np.ndarray, tree: quadTree.QuadTree) -> list:
+def knn(point: list, K: int, tree: quadTree.QuadTree) -> list:
     pass

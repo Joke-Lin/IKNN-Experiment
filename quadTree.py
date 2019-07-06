@@ -77,7 +77,6 @@ class QuadTree:
         capacity: 每个窗口的最小密度
         root: 四叉树的根节点
     '''
-    capacity = 500
 
     def creatTree(self, rect: list, dataSet: np.ndarray) -> Node:
         '''根据一个窗口和一组数据返回一个四叉树
@@ -89,9 +88,8 @@ class QuadTree:
         '''
         drawRect(rect)
         pointsNum = len(dataSet)
-        # print(pointsNum)
         tempRoot = Node(rect, len(dataSet))
-        if pointsNum <= QuadTree.capacity:
+        if pointsNum <= self.capacity:
             tempRoot.points = dataSet
         else:
             # 获取大的区域的四等分子区域和子区域的点集
@@ -132,7 +130,8 @@ class QuadTree:
             subPoints[index].append(point)
         return subSpace, subPoints
 
-    def __init__(self, rect: list, dataSet: np.ndarray):
+    def __init__(self, rect: list, dataSet: np.ndarray, capacity: int):
+        self.capacity = capacity
         self.root = self.creatTree(rect, dataSet)
 
 
@@ -141,10 +140,8 @@ def visualization():
     x, y = dataSet[:, 0], dataSet[:, 1]
     plt.scatter(x, y, s=1)
     rect = minRect(dataSet)
-    print(rect)
-    # quadTree = QuadTree(minRect(dataSet), dataSet)
-    # plt.show()
-    print(minDist([1, 0], [1, 4, 2, 1]))
+    quadTree = QuadTree(minRect(dataSet), dataSet, 500)
+    plt.show()
 
 
 if __name__ == "__main__":
