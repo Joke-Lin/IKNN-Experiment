@@ -5,6 +5,10 @@ import matplotlib.patches as mp
 
 
 # 一些辅助工具函数
+def euclidianDistance(a: list, b: list) -> float:
+    return ((a[0]-b[0])**2 + (a[1]-b[1])**2)**0.5
+
+
 def minRect(dataSet: np.ndarray) -> list:
     ''' 求解外包最小矩形 '''
     point1 = dataSet[0].copy()  # 左上角
@@ -86,7 +90,6 @@ class QuadTree:
         Return:
             root：一个四叉树的根节点
         '''
-        drawRect(rect)
         pointsNum = len(dataSet)
         tempRoot = Node(rect, len(dataSet))
         if pointsNum <= self.capacity:
@@ -135,12 +138,20 @@ class QuadTree:
         self.root = self.creatTree(rect, dataSet)
 
 
+def drawAllRect(root):
+    drawRect(root.rect)
+    for i in root.children:
+        drawAllRect(i)
+
+
 def visualization():
     dataSet = preprocess.readDataSet()
     x, y = dataSet[:, 0], dataSet[:, 1]
     plt.scatter(x, y, s=1)
     rect = minRect(dataSet)
     quadTree = QuadTree(minRect(dataSet), dataSet, 500)
+    drawAllRect(quadTree.root)
+    plt.axis('equal')
     plt.show()
 
 

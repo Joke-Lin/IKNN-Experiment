@@ -29,6 +29,7 @@ def visualization():
     dataSet = readDataSet()
     x, y = dataSet[:,0], dataSet[:,1]
     plt.scatter(x, y, s=1)
+    plt.axis('equal')
     plt.show()
 
 if __name__ == "__main__":
