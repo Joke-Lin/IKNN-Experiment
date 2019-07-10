@@ -2,6 +2,8 @@ import preprocess
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as mp
+import os
+from time import time
 
 
 # 一些辅助工具函数
@@ -9,15 +11,15 @@ def euclidianDistance(a: list, b: list) -> float:
     return ((a[0]-b[0])**2 + (a[1]-b[1])**2)**0.5
 
 
-def minRect(dataSet: np.ndarray) -> list:
-    ''' 求解外包最小矩形 '''
-    point1 = dataSet[0].copy()  # 左上角
-    point2 = dataSet[0].copy()  # 右下角
-    for point in dataSet:
-        point1[0] = point[0] if point[0] < point1[0] else point1[0]
-        point1[1] = point[1] if point[1] > point1[1] else point1[1]
-        point2[0] = point[0] if point[0] > point2[0] else point2[0]
-        point2[1] = point[1] if point[1] < point2[1] else point2[1]
+def minRect(pointSet: list, dataSetDict: dict) -> list:
+    ''' 求解外包最小矩形 根据点的下标集合和数据字典 '''
+    point1 = dataSetDict[pointSet[0]].copy()  # 左上角
+    point2 = dataSetDict[pointSet[0]].copy()  # 右下角
+    for i in pointSet:
+        point1[0] = dataSetDict[i][0] if dataSetDict[i][0] < point1[0] else point1[0]
+        point1[1] = dataSetDict[i][1] if dataSetDict[i][1] > point1[1] else point1[1]
+        point2[0] = dataSetDict[i][0] if dataSetDict[i][0] > point2[0] else point2[0]
+        point2[1] = dataSetDict[i][1] if dataSetDict[i][1] < point2[1] else point2[1]
 
     return [point1[0], point1[1], point2[0] - point1[0], point1[1] - point2[1]]
 
@@ -82,35 +84,36 @@ class QuadTree:
         root: 四叉树的根节点
     '''
 
-    def creatTree(self, rect: list, dataSet: np.ndarray) -> Node:
+    def creatTree(self, rect: list, pointSet: list, dataSetDict: dict) -> Node:
         '''根据一个窗口和一组数据返回一个四叉树
         Args:
             rect: 需要建立四叉树的窗口
-            dataSet：此窗口中的数据集
+            pointSet：此窗口中的数据集 存储为点的下标形式
+            dataSetDict：真正的数据集字典
         Return:
             root：一个四叉树的根节点
         '''
-        pointsNum = len(dataSet)
-        tempRoot = Node(rect, len(dataSet))
+        pointsNum = len(pointSet)
+        tempRoot = Node(rect, len(pointSet))
         if pointsNum <= self.capacity:
-            tempRoot.points = dataSet
+            tempRoot.points = pointSet
         else:
             # 获取大的区域的四等分子区域和子区域的点集
-            subSpace, subPoints = self.splitSpace(rect, dataSet)
+            subSpace, subPoints = self.splitSpace(rect, pointSet, dataSetDict)
             for i in range(4):
-                tempRoot.children.append(
-                    self.creatTree(subSpace[i], subPoints[i]))
+                tempRoot.children.append(self.creatTree(subSpace[i], subPoints[i], dataSetDict))
 
         return tempRoot
 
-    def splitSpace(self, rect: list, dataSet: np.ndarray) -> list:
+    def splitSpace(self, rect: list, pointSet: list, dataSetDict: dict) -> list:
         '''将父窗口切割为四个小窗口同时切分数据
         Args:
             rect：父窗口大小
-            dataSet：窗口内数据
+            pointSet：此窗口中的数据集 存储为点的下标形式
+            dataSetDict：真正的数据集字典
         Return：
             subSpace：四个小区域的大小和位置
-            subPoints：四个小区域的数据
+            subPoints：四个小区域的数据 存储点的下标
         '''
         x, y, w, h = rect
         w, h = w/2, h/2
@@ -120,22 +123,23 @@ class QuadTree:
                     [x + w, y - h, w, h]]
 
         subPoints = [[], [], [], []]
-        for point in dataSet:
+        for i in pointSet:
             index = 0
-            if isInRect(point, subSpace[0]):
+            if isInRect(dataSetDict[i], subSpace[0]):
                 index = 0
-            elif isInRect(point, subSpace[1]):
+            elif isInRect(dataSetDict[i], subSpace[1]):
                 index = 1
-            elif isInRect(point, subSpace[2]):
+            elif isInRect(dataSetDict[i], subSpace[2]):
                 index = 2
             else:
                 index = 3
-            subPoints[index].append(point)
+            subPoints[index].append(i)
         return subSpace, subPoints
 
-    def __init__(self, rect: list, dataSet: np.ndarray, capacity: int):
+    def __init__(self, dataSetDict: dict, capacity: int):
         self.capacity = capacity
-        self.root = self.creatTree(rect, dataSet)
+        pointSet = range(len(dataSetDict))
+        self.root = self.creatTree(minRect(pointSet, dataSetDict), pointSet, dataSetDict)
 
 
 def drawAllRect(root):
@@ -144,16 +148,62 @@ def drawAllRect(root):
         drawAllRect(i)
 
 
-def visualization():
+def getTreeHeight(root):
+    res = 0
+    for i in root.children:
+        res = max(res, 1 + getTreeHeight(i))
+    return res
+
+
+# 在图上显示一个具体的四叉树
+def show():
+    plt.figure(1)
+    dataSetDict = preprocess.readDataSetAsDict()
     dataSet = preprocess.readDataSet()
-    x, y = dataSet[:, 0], dataSet[:, 1]
-    plt.scatter(x, y, s=1)
-    rect = minRect(dataSet)
-    quadTree = QuadTree(minRect(dataSet), dataSet, 500)
+    preprocess.drawPoints(dataSet)
+    # 500 capacity 展示
+    quadTree = QuadTree(dataSetDict, 500)
     drawAllRect(quadTree.root)
     plt.axis('equal')
+    plt.title("Quad-Tree With Capacity 500")
+
+
+# 不同capacity花费构造时间比较
+def test():
+    plt.figure(2)
+    dataSetDict = preprocess.readDataSetAsDict()
+    x = list(range(100,6000,500))
+    y = []
+    print("capacity\taverage-time\t\theight")
+    for i in range(100, 6000, 500):
+        times = 5
+        s = time()
+        for j in range(times):
+            quadTree = QuadTree(dataSetDict, i)
+        e = time()
+        height = getTreeHeight(quadTree.root)
+        print("{}\t\t{}\t{}".format(i, (e-s)/times, height))
+        y.append((e-s)/times)
+    
+    plt.plot(x, y, 'r-o')
+    plt.xlabel("Capacity")
+    plt.ylabel("Average Time")
+
+
+# 性能测试和可视化
+def main():
+    if not os.path.exists(preprocess.dataSetPath) and not os.path.exists(preprocess.newDataSetPath):
+        print("Error:","dataSetPath","not exist")
+        return
+    if not os.path.exists(preprocess.newDataSetPath):
+        preprocess.writeDataSetToFile()
+    # 使用matlibplot展示一个样例
+    show()
+    # test耗费时间过长 默认注释掉
+    # 取消注释查看不同情况的四叉树生成时间
+    # test()
     plt.show()
 
 
 if __name__ == "__main__":
-    visualization()
+    main()

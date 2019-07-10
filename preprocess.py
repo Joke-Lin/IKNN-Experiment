@@ -1,8 +1,10 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import os
 
 dataSetPath = "./data-set/la_points.txt"        # 原始文本型数据集路径
 newDataSetPath = "./data-set/la_points.npy"     # 新的二进制型数据集路径
+
 
 def writeDataSetToFile():
     '''
@@ -19,18 +21,42 @@ def writeDataSetToFile():
         dataSet = np.array(dataSet)
         np.save(newDataSetPath, dataSet)
 
-def readDataSet()->np.ndarray:
+
+def readDataSet() -> np.ndarray:
     ''' 从上面定义的numpy型数据集读取数据并返回 '''
     return np.load(newDataSetPath)
 
-def visualization():
-    ''' 简单的可视化处理 '''
-    writeDataSetToFile()
+
+def readDataSetAsDict() -> dict:
+    dataSetDict = {}
     dataSet = readDataSet()
-    x, y = dataSet[:,0], dataSet[:,1]
+    i = 0
+    for point in dataSet:
+        dataSetDict[i] = list(point)
+        i += 1
+    
+    return dataSetDict
+
+
+def drawPoints(dataSet):
+    x, y = dataSet[:, 0], dataSet[:, 1]
     plt.scatter(x, y, s=1)
+
+
+def main():
+    ''' 简单的可视化处理 '''
+    if not os.path.exists(dataSetPath) and not os.path.exists(newDataSetPath):
+        print("Error:","dataSetPath","not exist")
+        return
+    if not os.path.exists(newDataSetPath):
+        writeDataSetToFile()
+    # 读入数据
+    dataSet = readDataSet()
+    # 开始绘制
+    drawPoints(dataSet)
     plt.axis('equal')
     plt.show()
 
+
 if __name__ == "__main__":
-    visualization()
+    main()
