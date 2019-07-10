@@ -9,8 +9,8 @@ import preprocess
 from  knn import *
 import os
 
-outfilep2tra = r'point2trajectory.npy'
-outfiletra2p = r'trajectory2point.npy'
+outfilep2tra = r'./data-set/point2trajectory.npy'
+outfiletra2p = r'./data-set/trajectory2point.npy'
 
 #生成轨迹
 def createTrajectories()->list:
